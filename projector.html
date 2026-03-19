@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projector Output</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="projector-mode">
+    
+    <h1 id="screen-text"></h1>
+
+    <script>
+      // Listen for Lyrics
+        window.api.onLyricUpdate((lyric) => {
+            document.getElementById("screen-text").innerText = lyric;
+        });
+
+        // NEW: Listen for Media and change the CSS background
+        window.api.onMediaUpdate((mediaPath) => {
+            if (mediaPath === "") {
+                document.body.style.backgroundImage = "none";
+                document.body.style.backgroundColor = "black";
+            } else {
+                document.body.style.backgroundImage = `url('${mediaPath}')`;
+            }
+        });
+    </script>
+</body>
+</html>

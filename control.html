@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Operator Control Panel</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #1e1e1e; color: white; display: flex; padding: 20px; gap: 20px; }
+        .panel { background-color: #2d2d2d; padding: 20px; border-radius: 8px; flex: 1; }
+        .song-btn { display: block; width: 100%; padding: 10px; margin-bottom: 10px; background-color: #444; color: white; border: none; cursor: pointer; text-align: left; font-size: 16px; border-radius: 4px; }
+        .song-btn:hover { background-color: #555; }
+        .control-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; width: 100%; margin-top: 10px;}
+        .control-btn:hover { background-color: #0056b3; }
+        .clear-btn { background-color: #dc3545; }
+        .clear-btn:hover { background-color: #c82333; }
+        #preview-text { background: black; padding: 15px; border-radius: 5px; min-height: 50px; text-align: center; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <h2>Song Library</h2>
+        <div id="song-list">
+            </div>
+    </div>
+<div class="panel">
+        <h2>Media Library</h2>
+        <p>Click to change projector background.</p>
+        
+        <button class="song-btn" onclick="changeBackground('bg1.jpg')">Background 1</button>
+        <button class="song-btn" onclick="changeBackground('bg2.jpg')">Background 2</button>
+        <button class="song-btn" onclick="changeBackground('bg3.jpg')">Background 3</button>
+        
+        <button class="song-btn" style="background-color: black; border: 1px solid white;" onclick="changeBackground('')">Black Screen</button>
+    </div>
+    <div class="panel">
+        <h2 id="current-song-title">No Song Selected</h2>
+        <div id="preview-text">Select a song to begin...</div>
+        
+        <button class="control-btn" onclick="nextSlide()">Next Slide ➔</button>
+        <button class="control-btn clear-btn" onclick="clearScreen()">Clear Screen ✖</button>
+    </div>
+
+    <script>
+        // THE DATABASE: An Array of Objects
+        const database = [
+            {
+                title: "Victory Belongs to Jesus",
+                lyrics: ["Who can stand against the Lord?", "No one can, No one will", "Victory belongs to Jesus!", "Victory belongs to Him!"]
+            },
+            {
+                title: "Way Maker",
+                lyrics: ["You are here, moving in our midst", "I worship you, I worship you", "Way Maker, Miracle Worker", "Promise Keeper, Light in the darkness"]
+            },
+            {
+                title: "Goodness of God",
+                lyrics: ["I love You, Lord", "For Your mercy never fails me", "All my days, I've been held in Your hands", "From the moment that I wake up"]
+            }
+        ];
+
+        let activeLyrics = [];
+        let currentSlideIndex = 0;
+
+        // 1. Build the Song Library Buttons when the app opens
+        function loadLibrary() {
+            const listDiv = document.getElementById("song-list");
+            for (let i = 0; i < database.length; i++) {
+                let btn = document.createElement("button");
+                btn.className = "song-btn";
+                btn.innerText = database[i].title;
+                // When clicked, load this specific song
+                btn.onclick = function() { loadSong(i); }; 
+                listDiv.appendChild(btn);
+            }
+        }
+
+        // 2. Load a song into the Active Controls
+        function loadSong(index) {
+            let song = database[index];
+            document.getElementById("current-song-title").innerText = song.title;
+            activeLyrics = song.lyrics;
+            currentSlideIndex = 0;
+            updatePreview();
+        }
+
+        // 3. Update the tiny preview box on the laptop
+        function updatePreview() {
+            if (activeLyrics.length > 0 && currentSlideIndex < activeLyrics.length) {
+                document.getElementById("preview-text").innerText = "Next up: " + activeLyrics[currentSlideIndex];
+            } else {
+                document.getElementById("preview-text").innerText = "End of Song";
+            }
+        }
+
+        // 4. Send the text to the Projector!
+        function nextSlide() {
+            if (activeLyrics.length === 0) return; // Do nothing if no song is selected
+
+            if (currentSlideIndex < activeLyrics.length) {
+                window.api.sendLyric(activeLyrics[currentSlideIndex]); // The Walkie-Talkie
+                currentSlideIndex++;
+                updatePreview();
+            }
+        }
+
+        // 5. Emergency Clear Screen Button
+        function clearScreen() {
+            window.api.sendLyric(""); // Sending an empty text clears the projector
+        }
+// 6. Send the new background image to the Projector
+        function changeBackground(mediaPath) {
+            window.api.sendMedia(mediaPath);
+        }
+        // Start the app by loading the library
+        loadLibrary();
+    </script>
+</body>
+</html>
