@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src 'self' data:;">
     <title>Operator Control Panel</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #1e1e1e; color: white; display: flex; padding: 20px; gap: 20px; }
@@ -25,39 +26,37 @@
         <h2>Media Library</h2>
         <p>Click to change projector background.</p>
         
-        <button class="song-btn" onclick="changeBackground('bg1.jpg')">Background 1</button>
-        <button class="song-btn" onclick="changeBackground('bg2.jpg')">Background 2</button>
-        <button class="song-btn" onclick="changeBackground('bg3.jpg')">Background 3</button>
+        <div id="media-list"></div>
         
-        <button class="song-btn" style="background-color: black; border: 1px solid white;" onclick="changeBackground('')">Black Screen</button>
+        <button class="song-btn" style="background-color: black; border: 1px solid white; margin-top: 15px;" onclick="changeBackground('')">Black Screen</button>
     </div>
-    <div class="panel">
-        <h2 id="current-song-title">No Song Selected</h2>
-        <div id="preview-text">Select a song to begin...</div>
+    <div class="panel" style="flex: 2;"> <h2 id="current-song-title">No Song Selected</h2>
         
-        <button class="control-btn" onclick="nextSlide()">Next Slide ➔</button>
+        <div id="lyrics-grid"></div>
+        
         <button class="control-btn clear-btn" onclick="clearScreen()">Clear Screen ✖</button>
     </div>
 
     <script>
         // THE DATABASE: An Array of Objects
-        const database = [
-            {
-                title: "Victory Belongs to Jesus",
-                lyrics: ["Who can stand against the Lord?", "No one can, No one will", "Victory belongs to Jesus!", "Victory belongs to Him!"]
-            },
-            {
-                title: "Way Maker",
-                lyrics: ["You are here, moving in our midst", "I worship you, I worship you", "Way Maker, Miracle Worker", "Promise Keeper, Light in the darkness"]
-            },
-            {
-                title: "Goodness of God",
-                lyrics: ["I love You, Lord", "For Your mercy never fails me", "All my days, I've been held in Your hands", "From the moment that I wake up"]
-            }
-        ];
-
+        // We start with an empty database
+        let database = [];
         let activeLyrics = [];
         let currentSlideIndex = 0;
+
+        // NEW: Ask the backend for the data when the app opens!
+        async function startApp() {
+            // Wait for the walkie-talkie to bring the data back
+            database = await window.api.loadDatabase();
+            
+            // Now that we have the data, build the buttons
+            loadLibrary(); 
+        }
+
+        // 1. Build the Song Library Buttons
+        function loadLibrary() {
+            // ... (keep your existing loadLibrary code here)
+        }
 
         // 1. Build the Song Library Buttons when the app opens
         function loadLibrary() {
@@ -72,33 +71,45 @@
             }
         }
 
-        // 2. Load a song into the Active Controls
+// 2. Load a song and generate the grid!
         function loadSong(index) {
             let song = database[index];
             document.getElementById("current-song-title").innerText = song.title;
             activeLyrics = song.lyrics;
-            currentSlideIndex = 0;
-            updatePreview();
-        }
+            
+            const gridDiv = document.getElementById("lyrics-grid");
+            gridDiv.innerHTML = ""; // Clear out the old song's grid
 
-        // 3. Update the tiny preview box on the laptop
-        function updatePreview() {
-            if (activeLyrics.length > 0 && currentSlideIndex < activeLyrics.length) {
-                document.getElementById("preview-text").innerText = "Next up: " + activeLyrics[currentSlideIndex];
-            } else {
-                document.getElementById("preview-text").innerText = "End of Song";
+            // Loop through every lyric and make a button
+            for (let i = 0; i < activeLyrics.length; i++) {
+                let btn = document.createElement("button");
+                btn.className = "song-btn lyric-item";
+                // If it's an empty string, label it clearly
+                btn.innerText = activeLyrics[i] === "" ? "(Blank Slide)" : activeLyrics[i];
+                
+                // When clicked, fire this specific lyric!
+                btn.onclick = function() { fireLyric(i); }; 
+                
+                // Give it an ID so we can find it later to highlight it
+                btn.id = "slide-" + i; 
+                
+                gridDiv.appendChild(btn);
             }
         }
 
-        // 4. Send the text to the Projector!
-        function nextSlide() {
-            if (activeLyrics.length === 0) return; // Do nothing if no song is selected
-
-            if (currentSlideIndex < activeLyrics.length) {
-                window.api.sendLyric(activeLyrics[currentSlideIndex]); // The Walkie-Talkie
-                currentSlideIndex++;
-                updatePreview();
+        // 3. The Non-Linear Firing Mechanism
+        function fireLyric(index) {
+            // Send the exact text to the projector
+            window.api.sendLyric(activeLyrics[index]); 
+            
+            // Remove the 'live' highlight from all buttons
+            let allBtns = document.getElementsByClassName("lyric-item");
+            for (let i = 0; i < allBtns.length; i++) {
+                allBtns[i].classList.remove("live");
             }
+
+            // Add the 'live' highlight to the one we just clicked!
+            document.getElementById("slide-" + index).classList.add("live");
         }
 
         // 5. Emergency Clear Screen Button
@@ -109,8 +120,22 @@
         function changeBackground(mediaPath) {
             window.api.sendMedia(mediaPath);
         }
-        // Start the app by loading the library
-        loadLibrary();
+
+async function startApp() {
+    try {
+        // 1. Load Songs
+        database = await window.api.loadDatabase();
+        loadLibrary(); 
+        console.log("Songs loaded successfully");
+
+        // 2. Load Media
+        const mediaFiles = await window.api.getMediaFiles();
+        loadMediaLibrary(mediaFiles);
+        console.log("Media loaded successfully");
+    } catch (error) {
+        console.error("The bridge failed:", error);
+    }
+}
     </script>
 </body>
 </html>
